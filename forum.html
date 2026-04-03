@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Community - GreenWorld</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Layout Fixes */
+        body { background-color: #f0f2f5; height: 100vh; display: flex; flex-direction: column; overflow: hidden; margin: 0; font-family: sans-serif; }
+        .forum-container { flex: 1; overflow-y: auto; padding: 15px; padding-bottom: 100px; }
+        
+        /* Post Styling */
+        .post-card { 
+            background: white; border-radius: 12px; padding: 15px; margin-bottom: 12px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); transition: background 0.2s;
+            user-select: none; -webkit-user-select: none;
+        }
+        .post-card:active { background: #f9f9f9; }
+        .post-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .post-header img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; background: #eee; }
+        .post-content { font-size: 14px; line-height: 1.5; color: #333; word-wrap: break-word; }
+        
+        /* Actions */
+        .post-actions { margin-top: 12px; padding-top: 10px; border-top: 1px solid #eee; display: flex; gap: 20px; font-size: 13px; color: #666; }
+        .action-btn { cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: bold; transition: 0.2s; }
+
+        /* Reply Section Styling */
+        .replies-container { background: #f8f9fa; border-radius: 8px; margin-top: 10px; padding: 10px; font-size: 12px; }
+        .reply-item { margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        .reply-item:last-child { border-bottom: none; }
+        .reply-author { font-weight: bold; color: #2F4F7F; }
+
+        /* Action Sheet & Modals (Standardized) */
+        #action-sheet-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 2000; display: none; align-items: flex-end; }
+        .action-sheet { width: 100%; background: white; border-radius: 20px 20px 0 0; padding: 20px; box-shadow: 0 -5px 15px rgba(0,0,0,0.2); animation: slideUp 0.3s ease-out; }
+        .action-sheet button { width: 100%; padding: 15px; margin-bottom: 10px; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+        .fab { position: fixed; bottom: 85px; right: 20px; width: 56px; height: 56px; background: #7cb342; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 100; }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div onclick="location.href='messages.html'" style="cursor:pointer; padding: 10px; font-size: 20px;">⬅️</div>
+        <div style="font-weight:bold; flex:1; text-align:center; margin-right:40px;">Community Forum</div>
+    </div>
+
+    <div class="forum-container" id="forum-feed"></div>
+
+    <div class="fab" onclick="openPostModal()">+</div>
+
+    <div class="bottom-nav">
+        <div onclick="location.href='messages.html'"><span>💬</span><span>Messages</span></div>
+        <div class="active-nav" onclick="location.href='community.html'"><span>🌐</span><span>Forum</span></div>
+        <div onclick="location.href='chatloop.html'"><span>🤖</span><span>AI</span></div>
+        <div onclick="location.href='profile.html'"><span>👤</span><span>Profile</span></div>
+    </div>
+
+    <div id="action-sheet-overlay" onclick="closeActionSheet()">
+        <div class="action-sheet" onclick="event.stopPropagation()">
+            <div style="width:40px; height:5px; background:#ddd; margin:0 auto 20px; border-radius:10px;"></div>
+            <button onclick="handleEdit()" style="background:#f0f2f5; color:#2F4F7F;">✏️ Edit Post</button>
+            <button onclick="handleDelete()" style="background:#ffebee; color:#d32f2f;">🗑️ Delete Post</button>
+            <button onclick="closeActionSheet()" style="background:none; color:#999; font-weight:normal;">Cancel</button>
+        </div>
+    </div>
+
+    <div id="post-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closePostModal()">&times;</span>
+            <h3 id="modal-title">Create Post</h3>
+            <textarea id="post-text" placeholder="What's on your mind?" style="width:100%; height:120px; padding:10px; border:1px solid #ddd; border-radius:8px; resize:none; font-family:inherit; box-sizing: border-box;"></textarea>
+            <button id="submit-post-btn" style="margin-top:10px; width: 100%; padding: 12px; background: #7cb342; color: white; border: none; border-radius: 8px; font-weight: bold;">Post Now</button>
+        </div>
+    </div>
+
+    <div id="reply-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeReplyModal()">&times;</span>
+            <h3>Write a Reply</h3>
+            <textarea id="reply-text" placeholder="Write your reply..." style="width:100%; height:80px; padding:10px; border:1px solid #ddd; border-radius:8px; resize:none; font-family:inherit; box-sizing: border-box;"></textarea>
+            <button onclick="submitReply()" style="margin-top:10px; width: 100%; padding: 12px; background: #2F4F7F; color: white; border: none; border-radius: 8px; font-weight: bold;">Reply</button>
+        </div>
+    </div>
+
+    <script>
+        const feed = document.getElementById('forum-feed');
+        const postModal = document.getElementById('post-modal');
+        const replyModal = document.getElementById('reply-modal');
+        const postInput = document.getElementById('post-text');
+        const replyInput = document.getElementById('reply-text');
+        const submitBtn = document.getElementById('submit-post-btn');
+        const actionSheet = document.getElementById('action-sheet-overlay');
+
+        let pressTimer;
+        let selectedPostId = null;
+        let isEditing = false;
+
+        function renderFeed() {
+            const posts = JSON.parse(localStorage.getItem('forumPosts')) || [];
+            const users = JSON.parse(localStorage.getItem('users')) || [];
+            const loggedInEmail = localStorage.getItem('loggedInUser');
+
+            feed.innerHTML = posts.length ? "" : `<div style="text-align:center;margin-top:50px;color:#999;">No posts yet.</div>`;
+
+            posts.sort((a, b) => b.id - a.id).forEach(post => {
+                const author = users.find(u => u.email === post.authorEmail) || { name: post.authorEmail, profilePhoto: '' };
+                const isMine = post.authorEmail === loggedInEmail;
+                
+                const likesArray = Array.isArray(post.likes) ? post.likes : [];
+                const hasLiked = likesArray.includes(loggedInEmail);
+                const comments = Array.isArray(post.replies) ? post.replies : [];
+
+                const card = document.createElement('div');
+                card.className = 'post-card';
+                
+                // Long-press handling for owner
+                if (isMine) {
+                    card.onmousedown = card.ontouchstart = () => {
+                        pressTimer = setTimeout(() => {
+                            selectedPostId = post.id;
+                            actionSheet.style.display = 'flex';
+                        }, 800);
+                    };
+                    card.onmouseup = card.onmouseleave = card.ontouchend = () => clearTimeout(pressTimer);
+                }
+
+                // Building the replies HTML
+                let repliesHtml = "";
+                if (comments.length > 0) {
+                    repliesHtml = `<div class="replies-container">`;
+                    comments.forEach(r => {
+                        const rUser = users.find(u => u.email === r.userEmail);
+                        repliesHtml += `
+                            <div class="reply-item">
+                                <span class="reply-author">${rUser ? rUser.name : 'User'}:</span> ${r.text}
+                            </div>`;
+                    });
+                    repliesHtml += `</div>`;
+                }
+
+                card.innerHTML = `
+                    <div class="post-header">
+                        <img src="${author.profilePhoto || 'default-photo.jpg'}">
+                        <div>
+                            <div style="font-weight:bold; font-size:14px;">${author.name}</div>
+                            <div style="font-size:10px; color:#999;">${post.time}</div>
+                        </div>
+                    </div>
+                    <div class="post-content">${post.text}</div>
+                    <div class="post-actions">
+                        <div class="action-btn" onclick="toggleLike(${post.id})" style="color: ${hasLiked ? '#7cb342' : '#666'}">
+                            ${hasLiked ? '💚' : '🤍'} <span>${likesArray.length}</span>
+                        </div>
+                        <div class="action-btn" onclick="openReplyModal(${post.id})">💬 <span>${comments.length}</span></div>
+                    </div>
+                    ${repliesHtml}
+                `;
+                feed.appendChild(card);
+            });
+        }
+
+        // --- Post Logic ---
+        function openPostModal(editMode = false) {
+            isEditing = editMode;
+            document.getElementById('modal-title').innerText = isEditing ? "Edit Post" : "Create Post";
+            submitBtn.innerText = isEditing ? "Save Changes" : "Post Now";
+            postModal.style.display = 'flex';
+            postInput.focus();
+        }
+        function closePostModal() { postModal.style.display = 'none'; postInput.value = ''; isEditing = false; }
+
+        submitBtn.onclick = () => {
+            const text = postInput.value.trim();
+            if (!text) return;
+            let posts = JSON.parse(localStorage.getItem('forumPosts')) || [];
+            if (isEditing) {
+                const idx = posts.findIndex(p => p.id === selectedPostId);
+                if (idx !== -1) posts[idx].text = text;
+            } else {
+                posts.push({
+                    id: Date.now(),
+                    authorEmail: localStorage.getItem('loggedInUser'),
+                    text: text,
+                    time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
+                    likes: [],
+                    replies: []
+                });
+            }
+            localStorage.setItem('forumPosts', JSON.stringify(posts));
+            closePostModal();
+            renderFeed();
+        };
+
+        // --- Reply Logic ---
+        function openReplyModal(postId) {
+            selectedPostId = postId;
+            replyModal.style.display = 'flex';
+            replyInput.focus();
+        }
+        function closeReplyModal() { replyModal.style.display = 'none'; replyInput.value = ''; }
+
+        function submitReply() {
+            const text = replyInput.value.trim();
+            if (!text) return;
+            let posts = JSON.parse(localStorage.getItem('forumPosts')) || [];
+            const idx = posts.findIndex(p => p.id === selectedPostId);
+            if (idx !== -1) {
+                if (!posts[idx].replies) posts[idx].replies = [];
+                posts[idx].replies.push({
+                    userEmail: localStorage.getItem('loggedInUser'),
+                    text: text,
+                    time: Date.now()
+                });
+                localStorage.setItem('forumPosts', JSON.stringify(posts));
+                closeReplyModal();
+                renderFeed();
+            }
+        }
+
+        // --- Like/Edit/Delete ---
+        function toggleLike(id) {
+            let posts = JSON.parse(localStorage.getItem('forumPosts')) || [];
+            const loggedInEmail = localStorage.getItem('loggedInUser');
+            const idx = posts.findIndex(p => p.id === id);
+            if (idx !== -1) {
+                if (!Array.isArray(posts[idx].likes)) posts[idx].likes = [];
+                const likeIndex = posts[idx].likes.indexOf(loggedInEmail);
+                likeIndex === -1 ? posts[idx].likes.push(loggedInEmail) : posts[idx].likes.splice(likeIndex, 1);
+                localStorage.setItem('forumPosts', JSON.stringify(posts));
+                renderFeed();
+            }
+        }
+
+        function handleEdit() {
+            const posts = JSON.parse(localStorage.getItem('forumPosts')) || [];
+            const post = posts.find(p => p.id === selectedPostId);
+            if (post) { closeActionSheet(); openPostModal(true); postInput.value = post.text; }
+        }
+
+        function handleDelete() {
+            if (confirm("Delete this post?")) {
+                let posts = JSON.parse(localStorage.getItem('forumPosts')) || [];
+                posts = posts.filter(p => p.id !== selectedPostId);
+                localStorage.setItem('forumPosts', JSON.stringify(posts));
+                closeActionSheet();
+                renderFeed();
+            }
+        }
+        function closeActionSheet() { actionSheet.style.display = 'none'; }
+
+        renderFeed();
+    </script>
+</body>
+</html>

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messages - GreenWorld</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Group Specific Styles */
+        .create-btn {
+            display: flex; align-items: center; justify-content: center;
+            gap: 10px; padding: 15px; background: #f1f8e9; color: #558b2f;
+            border-radius: 12px; margin: 15px 0; cursor: pointer;
+            font-weight: bold; border: 2px dashed #aed581; transition: 0.3s;
+        }
+        .create-btn:hover { background: #e1edcf; }
+
+        .group-item {
+            display: flex; align-items: center; padding: 12px;
+            border-bottom: 1px solid #eee; cursor: pointer;
+        }
+
+        .group-avatar, .group-img {
+            width: 48px; height: 48px; border-radius: 50%;
+            object-fit: cover; display: flex; align-items: center;
+            justify-content: center; background: #7cb342;
+            color: white; font-weight: bold; font-size: 20px; text-transform: uppercase;
+        }
+
+        .friend-checkbox-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px; border-bottom: 1px solid #f5f5f5;
+        }
+
+        #friend-selection-list {
+            max-height: 200px; overflow-y: auto;
+            margin: 10px 0; border: 1px solid #eee; border-radius: 8px;
+        }
+
+        /* GREEN ELITE BADGE STYLE */
+        .elite-badge {
+            background-color: #4CAF50; color: white; font-size: 9px; padding: 2px 5px;
+            border-radius: 4px; margin-left: 6px; font-weight: bold; display: inline-block;
+            vertical-align: middle; text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="menu-icon" onclick="location.href='menu.html'">☰</div>
+        <img src="ChatLoop.png" alt="Logo" class="logo-img">
+        <div class="search-icon" onclick="location.href='search.html'">🔍</div>
+    </div>
+
+    <div class="content">
+        <h2 id="welcome-text">Messages</h2>
+        <div class="message-tab">
+            <div class="option" onclick="showTab('friends')">👥<br>Friends</div>
+            <div class="option" onclick="showTab('community')">🌐<br>Community</div>
+            <div class="option" onclick="showTab('groups')">👪<br>Groups</div>
+        </div>
+
+        <div id="friends" class="msg-content">
+            <div id="friends-list"></div>
+        </div>
+
+        <div id="community" class="msg-content" style="display:none;">
+            <p style="text-align:center; color:#888; padding: 20px;">No community messages yet.</p>
+        </div>
+
+        <div id="groups" class="msg-content" style="display:none;">
+            <div class="create-btn" onclick="openGroupModal()">
+                <span>➕</span> Create New Group
+            </div>
+            <div id="groups-list"></div>
+        </div>
+    </div>
+
+    <div id="group-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeGroupModal()">&times;</span>
+            <h3>Create New Group</h3>
+            <div class="edit-group">
+                <label>Group Name</label>
+                <input type="text" id="group-name-input" placeholder="Name your group...">
+            </div>
+            <div class="edit-group">
+                <label>Group Icon</label>
+                <input type="file" id="group-photo-input" accept="image/*">
+            </div>
+            <div class="edit-group">
+                <label>Add Members</label>
+                <div id="friend-selection-list"></div>
+            </div>
+            <button class="save-btn" onclick="createNewGroup()" style="width:100%; padding:12px; background:#7cb342; color:white; border:none; border-radius:8px; font-weight:bold;">Create Group</button>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <div class="active-nav" onclick="location.href='messages.html'"><span>💬</span><span>Messages</span></div>
+        <div onclick="location.href='friends.html'"><span>👥</span><span>Friends</span></div>
+        <div onclick="location.href='chatloop.html'"><span>🤖</span><span>AI</span></div>
+        <div onclick="location.href='profile.html'"><span>👤</span><span>Profile</span></div>
+    </div>
+
+    <script>
+        const users = JSON.parse(localStorage.getItem('users')) || [];
+        const loggedInEmail = localStorage.getItem('loggedInUser');
+        const currentUser = users.find(u => u.email === loggedInEmail);
+        const isAdmin = (loggedInEmail === "Admin");
+
+        // Security check
+        if (!loggedInEmail || (!isAdmin && !currentUser)) {
+            window.location.replace('login.html');
+        }
+
+        function showTab(tabId) {
+            document.querySelectorAll('.msg-content').forEach(t => t.style.display = 'none');
+            document.getElementById(tabId).style.display = 'block';
+        }
+
+        function openGroupModal() {
+            const list = document.getElementById('friend-selection-list');
+            list.innerHTML = ""; 
+            if (currentUser?.friends?.length > 0) {
+                currentUser.friends.forEach(email => {
+                    const friend = users.find(u => u.email === email);
+                    if (friend) {
+                        list.innerHTML += `
+                            <div class="friend-checkbox-item">
+                                <input type="checkbox" value="${friend.email}" class="group-member-check" id="chk-${friend.email}">
+                                <label for="chk-${friend.email}">${friend.name || friend.email}</label>
+                            </div>`;
+                    }
+                });
+            } else {
+                list.innerHTML = `<p style="text-align:center; padding:10px; font-size:12px; color:#888;">${isAdmin ? "Admin cannot create groups here." : "No friends to add."}</p>`;
+            }
+            document.getElementById('group-modal').style.display = 'flex';
+        }
+
+        function closeGroupModal() { document.getElementById('group-modal').style.display = 'none'; }
+
+        function createNewGroup() {
+            const name = document.getElementById('group-name-input').value.trim();
+            const photoFile = document.getElementById('group-photo-input').files[0];
+            const selectedEmails = Array.from(document.querySelectorAll('.group-member-check:checked')).map(cb => cb.value);
+
+            if (!name) return alert("Please enter a group name.");
+            if (selectedEmails.length === 0 && !isAdmin) return alert("Select at least one member.");
+
+            const saveGroup = (photoData) => {
+                let allGroups = JSON.parse(localStorage.getItem('groups')) || [];
+                const newGroup = {
+                    id: "grp_" + Date.now(),
+                    name: name,
+                    groupPhoto: photoData,
+                    members: [loggedInEmail, ...selectedEmails],
+                    createdAt: Date.now()
+                };
+                allGroups.push(newGroup);
+                localStorage.setItem('groups', JSON.stringify(allGroups));
+                closeGroupModal();
+                renderGroups();
+            };
+
+            if (photoFile) {
+                const reader = new FileReader();
+                reader.onload = (e) => { saveGroup(e.target.result); };
+                reader.readAsDataURL(photoFile);
+            } else { saveGroup(null); }
+        }
+
+        function renderGroups() {
+            const groupList = document.getElementById('groups-list');
+            const allGroups = JSON.parse(localStorage.getItem('groups')) || [];
+            groupList.innerHTML = "";
+            const myGroups = allGroups.filter(g => g.members.includes(loggedInEmail));
+
+            myGroups.forEach(group => {
+                const avatar = group.groupPhoto 
+                    ? `<img src="${group.groupPhoto}" class="group-img">`
+                    : `<div class="group-avatar">${group.name.charAt(0)}</div>`;
+                
+                const div = document.createElement('div');
+                div.className = "group-item";
+                div.innerHTML = `${avatar}<div style="margin-left:12px;">
+                    <div style="font-weight:bold;">${group.name}</div>
+                    <div style="font-size:12px; color:#888;">${group.members.length} members</div>
+                </div>`;
+                div.onclick = () => {
+                    localStorage.setItem('currentChatGroupID', group.id);
+                    window.location.href = 'message-space.html?type=group';
+                };
+                groupList.appendChild(div);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (isAdmin) document.getElementById('welcome-text').textContent = "Admin Messages";
+
+            const friendList = document.getElementById('friends-list');
+            if (isAdmin) {
+                friendList.innerHTML = "<p style='text-align:center; padding:40px; color:#666;'>Admin Dashboard</p>";
+            } else if (currentUser?.friends) {
+                currentUser.friends.forEach(email => {
+                    const friend = users.find(u => u.email === email);
+                    if (friend) {
+                        // Badge Logic: 500+ Friends AND isVerified property is true
+                        const fCount = friend.friends ? friend.friends.length : 0;
+                        const badge = (fCount >= 500 && friend.isVerified) ? '<span class="elite-badge">✓ Elite</span>' : '';
+
+                        const div = document.createElement('div');
+                        div.style.cssText = "display:flex; align-items:center; gap:12px; padding:12px; border-bottom:1px solid #eee; cursor:pointer;";
+                        div.innerHTML = `
+                            <img src="${friend.profilePhoto || 'default-photo.jpg'}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
+                            <span>${friend.name || email}${badge}</span>
+                        `;
+                        div.onclick = () => {
+                            localStorage.setItem('currentChatFriendEmail', friend.email);
+                            window.location.href = 'message-space.html?type=private';
+                        };
+                        friendList.appendChild(div);
+                    }
+                });
+            }
+            renderGroups();
+        });
+    </script>
+</body>
+</html>

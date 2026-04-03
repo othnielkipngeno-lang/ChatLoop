@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support - GreenWorld</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .container { padding: 20px; padding-bottom: 50px; }
+        .faq-item { background: white; border-radius: 10px; margin-bottom: 10px; border: 1px solid #eee; overflow: hidden; }
+        .faq-q { padding: 15px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; background: #fff; }
+        .faq-a { padding: 0 15px; max-height: 0; overflow: hidden; transition: 0.3s; color: #666; font-size: 13px; }
+        .ticket-card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; border-left: 5px solid #7cb342; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .reply-area { margin-top: 10px; display: flex; gap: 8px; }
+        .reply-input { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 6px; }
+        .reply-btn { background: #7cb342; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .contact-box { background: #7cb342; padding: 20px; border-radius: 15px; color: white; margin-top: 20px; }
+        .contact-box input, .contact-box textarea { width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; border: none; box-sizing: border-box; }
+        .submit-btn { background: white; color: #7cb342; border: none; padding: 12px; width: 100%; border-radius: 8px; font-weight: bold; margin-top: 15px; cursor: pointer; }
+        .admin-label { background: #333; color: white; padding: 2px 8px; border-radius: 5px; font-size: 10px; vertical-align: middle; margin-left: 5px; }
+        /* Verification Button Style */
+        .verify-btn { padding: 4px 8px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; margin-top: 5px; font-weight: bold; color: white; }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <div onclick="goBack()" style="cursor:pointer; font-size: 20px;">⬅️</div>
+        <div style="flex:1; text-align:center; font-weight:bold;" id="header-title">Help & Support</div>
+    </div>
+    <div class="container">
+        <div id="user-section">
+            <h3>Frequently Asked Questions</h3>
+            <div class="faq-item"><div class="faq-q" onclick="toggleFAQ(this)">How to create a group? <span>+</span></div><div class="faq-a">Navigate to Messages > Groups > Create New Group.</div></div>
+            <div class="contact-box">
+                <h4 style="margin:0;">Submit Feedback</h4>
+                <input type="text" id="subject" placeholder="Subject">
+                <textarea id="message" rows="3" placeholder="Describe your issue..."></textarea>
+                <button class="submit-btn" onclick="sendTicket()">Send to Admin</button>
+            </div>
+            <div id="user-replies" style="margin-top: 20px;"></div>
+        </div>
+        <div id="admin-section" style="display:none;">
+            <h3>Support Inbox <span class="admin-label">Admin: ChatLoop</span></h3>
+            <div id="admin-list"></div>
+        </div>
+    </div>
+    <script>
+        const currentUser = localStorage.getItem('loggedInUser');
+        const storageKey = 'support_tickets_system';
+
+        function goBack() { window.history.length > 1 ? window.history.back() : window.location.href = 'messages.html'; }
+
+        function init() {
+            if (currentUser === "Admin") {
+                document.getElementById('user-section').style.display = 'none';
+                document.getElementById('admin-section').style.display = 'block';
+                document.getElementById('header-title').textContent = "Admin Control Panel";
+                renderAdminInbox();
+            } else { renderUserReplies(); }
+        }
+
+        function toggleVerify(email) {
+            let users = JSON.parse(localStorage.getItem('users')) || [];
+            users = users.map(u => {
+                if(u.email === email) u.isVerified = !u.isVerified;
+                return u;
+            });
+            localStorage.setItem('users', JSON.stringify(users));
+            alert("User verification status updated!");
+            renderAdminInbox();
+        }
+
+        function renderAdminInbox() {
+            const tickets = JSON.parse(localStorage.getItem(storageKey)) || [];
+            const users = JSON.parse(localStorage.getItem('users')) || [];
+            const list = document.getElementById('admin-list');
+            if (tickets.length === 0) { list.innerHTML = "<p>No tickets yet.</p>"; return; }
+            list.innerHTML = tickets.map(t => {
+                const userObj = users.find(u => u.email === t.user);
+                const isV = userObj?.isVerified;
+                return `
+                <div class="ticket-card">
+                    <small>FROM: ${t.user}</small>
+                    <button class="verify-btn" onclick="toggleVerify('${t.user}')" style="background:${isV?'#e74c3c':'#4CAF50'}">
+                        ${isV ? 'Unverify User' : 'Approve Elite Badge'}
+                    </button>
+                    <div style="font-weight:bold;">${t.subject}</div>
+                    <div style="font-size:13px;">${t.text}</div>
+                    <div class="reply-area">
+                        <input type="text" id="rep-${t.id}" class="reply-input" placeholder="Reply...">
+                        <button class="reply-btn" onclick="replyTicket(${t.id})">Send</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function sendTicket() {
+            const sub = document.getElementById('subject').value.trim();
+            const msg = document.getElementById('message').value.trim();
+            if (!sub || !msg) return alert("Fill all fields.");
+            let tickets = JSON.parse(localStorage.getItem(storageKey)) || [];
+            tickets.push({ id: Date.now(), user: currentUser, subject: sub, text: msg, reply: null });
+            localStorage.setItem(storageKey, JSON.stringify(tickets));
+            alert("Sent!");
+            location.reload();
+        }
+
+        function replyTicket(id) {
+            const text = document.getElementById(`rep-${id}`).value.trim();
+            if (!text) return;
+            let tickets = JSON.parse(localStorage.getItem(storageKey)) || [];
+            tickets = tickets.map(t => t.id === id ? {...t, reply: text} : t);
+            localStorage.setItem(storageKey, JSON.stringify(tickets));
+            renderAdminInbox();
+        }
+
+        function toggleFAQ(el) {
+            const ans = el.nextElementSibling;
+            ans.style.maxHeight = ans.style.maxHeight ? null : ans.scrollHeight + "px";
+        }
+        function renderUserReplies() { /* existing logic */ }
+        init();
+    </script>
+</body>
+</html>

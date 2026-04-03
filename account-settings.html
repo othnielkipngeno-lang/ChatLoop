@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Settings - GreenWorld</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .settings-list { margin-top: 20px; }
+        .settings-item {
+            background: white; padding: 15px; border-radius: 12px;
+            margin-bottom: 10px; display: flex; align-items: center; 
+            gap: 15px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: background 0.2s;
+        }
+        .settings-item:active { background: #f0f2f5; }
+        .settings-item .icon { font-size: 20px; width: 24px; text-align: center; }
+        .settings-item .text-container { flex: 1; }
+        .settings-item .label { font-weight: bold; color: #2F4F7F; font-size: 15px; }
+        .settings-item .value { font-size: 12px; color: #888; margin-top: 2px; }
+        .arrow { color: #ccc; font-size: 14px; }
+        .danger-zone { margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
+        .delete-btn { 
+            width: 100%; padding: 15px; background: #ffebee; color: #d32f2f; 
+            border: none; border-radius: 12px; font-weight: bold; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div onclick="window.goBack()" style="cursor:pointer; padding: 10px; font-size: 20px;">⬅️</div>
+        <div style="font-weight:bold; flex:1; text-align:center; margin-right:40px;">Account Settings</div>
+    </div>
+
+    <div class="content">
+        <div class="settings-list">
+            <div class="settings-item" onclick="openPasswordModal()">
+                <div class="icon">🔒</div>
+                <div class="text-container">
+                    <div class="label">Change Password</div>
+                    <div class="value">Update your login security</div>
+                </div>
+                <span class="arrow">❯</span>
+            </div>
+
+            <div class="settings-item" onclick="location.href='notifications.html'">
+                <div class="icon">🔔</div>
+                <div class="text-container">
+                    <div class="label">Notifications</div>
+                    <div class="value">Manage alerts and popups</div>
+                </div>
+                <span class="arrow">❯</span>
+            </div>
+
+            <div class="settings-item" onclick="location.href='privacy.html'">
+                <div class="icon">👁️</div>
+                <div class="text-container">
+                    <div class="label">Privacy Mode</div>
+                    <div class="value">Manage visibility & security</div>
+                </div>
+                <span class="arrow">❯</span>
+            </div>
+        </div>
+
+        <div class="danger-zone">
+            <button class="delete-btn" onclick="deleteAccount()">Delete Account</button>
+        </div>
+    </div>
+
+    <div id="password-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closePasswordModal()">&times;</span>
+            <h3>Update Password</h3>
+            <div class="edit-group">
+                <label>Current Password</label>
+                <input type="password" id="current-pass" placeholder="Enter current password">
+            </div>
+            <div class="edit-group">
+                <label>New Password</label>
+                <input type="password" id="new-pass" placeholder="Minimum 6 characters">
+            </div>
+            <button id="save-pass-btn" onclick="updatePassword()">Update Password</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        const email = localStorage.getItem('loggedInUser');
+        let users = JSON.parse(localStorage.getItem('users')) || [];
+        let userIndex = users.findIndex(u => u.email === email);
+        let user = users[userIndex];
+
+        if (!user) window.location.href = 'login.html';
+
+        function openPasswordModal() { document.getElementById('password-modal').style.display = 'flex'; }
+        function closePasswordModal() {
+            document.getElementById('password-modal').style.display = 'none';
+            document.getElementById('current-pass').value = "";
+            document.getElementById('new-pass').value = "";
+        }
+
+        function updatePassword() {
+            const current = document.getElementById('current-pass').value;
+            const next = document.getElementById('new-pass').value;
+            if (current !== user.password) return alert("Current password incorrect!");
+            if (next.length < 6) return alert("New password too short.");
+
+            user.password = next;
+            users[userIndex] = user;
+            localStorage.setItem('users', JSON.stringify(users));
+            window.showNotification("Security", "Password updated!", "🔒");
+            closePasswordModal();
+        }
+
+        function deleteAccount() {
+            if (confirm("Delete your account permanently?")) {
+                const updatedUsers = users.filter(u => u.email !== email);
+                localStorage.setItem('users', JSON.stringify(updatedUsers));
+                localStorage.removeItem('loggedInUser');
+                window.location.href = 'signup.html';
+            }
+        }
+
+        window.onclick = (e) => { if (e.target.id == 'password-modal') closePasswordModal(); }
+    </script>
+</body>
+</html>

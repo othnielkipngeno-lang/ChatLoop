@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - GreenWorld</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body style="background-color: #2F4F7F; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: sans-serif;"> 
+
+    <div class="auth-wrapper">
+        <div class="auth-card">
+            <img src="ChatLoop.png" alt="Logo" style="max-width: 100px; margin-bottom: 15px;">
+            <h2 style="margin-top: 0; color: #333;">Welcome Back</h2>
+            
+            <input type="text" id="login-email" placeholder="Email or Username">
+            <input type="password" id="login-pass" placeholder="Password">
+            
+            <button id="login-btn">Login</button>
+            
+            <div class="auth-link">
+                Don't have an account? <a href="signup.html">Sign Up</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('login-btn').onclick = () => {
+            const userInput = document.getElementById('login-email').value.trim();
+            const passInput = document.getElementById('login-pass').value.trim();
+            
+            if (!userInput || !passInput) return alert("Please enter both email and password.");
+
+            if (userInput === "Admin" && passInput === "qwerty") {
+                localStorage.setItem('loggedInUser', "Admin");
+                window.location.replace('messages.html');
+                return;
+            }
+
+            const users = JSON.parse(localStorage.getItem('users')) || [];
+            const user = users.find(u => u.email === userInput && u.password === passInput);
+            
+            if (user) {
+                localStorage.setItem('loggedInUser', user.email);
+                window.location.replace('messages.html');
+            } else {
+                alert("Invalid credentials. Try again.");
+            }
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search - GreenWorld</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .result-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px; background: white; margin-bottom: 8px; border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .add-btn {
+            background: #2F4F7F; color: white; border: none; padding: 6px 15px;
+            border-radius: 20px; font-size: 12px; cursor: pointer; font-weight: bold;
+        }
+        .search-tabs { display: flex; gap: 10px; margin-bottom: 15px; }
+        .search-tabs button {
+            flex: 1; padding: 8px; border: none; border-radius: 20px;
+            background: #eee; color: #666; cursor: pointer; font-size: 13px;
+        }
+        .search-tabs .active-tab { background: #2F4F7F; color: white; }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div onclick="window.history.back()" style="cursor:pointer; padding: 10px; font-size: 20px;">⬅️</div>
+        <input type="text" id="main-search" placeholder="Search people..." 
+               style="flex:1; margin: 0 10px; padding: 10px; border-radius: 20px; border:none; outline:none; background:#f0f2f5;">
+    </div>
+
+    <div class="content">
+        <div class="search-tabs">
+            <button id="tab-people" class="active-tab" onclick="switchTab('people')">People</button>
+            <button id="tab-community" onclick="switchTab('community')">Communities</button>
+            <button id="tab-groups" onclick="switchTab('groups')">Groups</button>
+        </div>
+        <div id="results-container"></div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        let currentTab = 'people';
+        const loggedInEmail = localStorage.getItem('loggedInUser');
+        let users = JSON.parse(localStorage.getItem('users')) || [];
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.search-tabs button').forEach(b => b.classList.remove('active-tab'));
+            document.getElementById(`tab-${tab}`).classList.add('active-tab');
+            renderResults(document.getElementById('main-search').value);
+        }
+
+        function renderResults(query = "") {
+            const container = document.getElementById('results-container');
+            container.innerHTML = "";
+            const q = query.toLowerCase();
+            const currentUser = users.find(u => u.email === loggedInEmail);
+
+            if (currentTab === 'people') {
+                const filtered = users.filter(u => u.email !== loggedInEmail && (u.name || u.email).toLowerCase().includes(q));
+                
+                if (filtered.length === 0) {
+                    container.innerHTML = `<p style="text-align:center; color:#999; margin-top:20px;">No one found.</p>`;
+                    return;
+                }
+
+                filtered.forEach(user => {
+                    const isFriend = currentUser?.friends?.includes(user.email);
+                    const statusHtml = window.formatLastSeen(user.lastSeen);
+
+                    const div = document.createElement('div');
+                    div.className = "result-item";
+                    div.innerHTML = `
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <img src="${user.profilePhoto || 'default-photo.jpg'}" style="width:45px; height:45px; border-radius:50%; object-fit:cover;">
+                            <div>
+                                <div style="font-weight:bold; font-size:14px; color:#2F4F7F;">${user.name || user.email}</div>
+                                <div style="font-size:10px; color:#888;">${statusHtml}</div>
+                            </div>
+                        </div>
+                        ${isFriend ? '<span style="color:#7cb342; font-size:12px; font-weight:bold;">Friends ✓</span>' : 
+                        `<button class="add-btn" onclick="addFriend('${user.email}')">Add</button>`}
+                    `;
+                    container.appendChild(div);
+                });
+            } else {
+                container.innerHTML = `<p style="text-align:center; color:#999; margin-top:20px;">Coming soon...</p>`;
+            }
+        }
+
+        function addFriend(email) {
+            const myIdx = users.findIndex(u => u.email === loggedInEmail);
+            const theirIdx = users.findIndex(u => u.email === email);
+            
+            if (!users[myIdx].friends) users[myIdx].friends = [];
+            if (!users[theirIdx].friends) users[theirIdx].friends = [];
+            
+            if (!users[myIdx].friends.includes(email)) {
+                users[myIdx].friends.push(email);
+                users[theirIdx].friends.push(loggedInEmail);
+                localStorage.setItem('users', JSON.stringify(users));
+                renderResults(document.getElementById('main-search').value);
+            }
+        }
+
+        document.getElementById('main-search').oninput = (e) => renderResults(e.target.value);
+        renderResults();
+    </script>
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatLoop AI - Manual Mode</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body { background: #f0f2f5; margin: 0; display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; }
+        #chat-window { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+        
+        /* Message Bubbles */
+        .msg { max-width: 75%; padding: 10px 15px; border-radius: 15px; font-size: 14px; line-height: 1.4; }
+        .user-msg { align-self: flex-end; background: #2F4F7F; color: white; border-bottom-right-radius: 2px; }
+        .ai-msg { align-self: flex-start; background: white; color: #333; border-bottom-left-radius: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+
+        /* Input Area */
+        .input-area { background: white; padding: 10px; display: flex; gap: 10px; border-top: 1px solid #ddd; }
+        #user-input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 25px; outline: none; }
+        #send-btn { background: #7cb342; color: white; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; font-size: 18px; }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div onclick="location.href='messages.html'" style="cursor:pointer;">⬅️</div>
+        <div style="flex:1; text-align:center; font-weight:bold;">ChatLoop AI (Offline)</div>
+    </div>
+
+    <div id="chat-window">
+        <div class="msg ai-msg">Hello! I am ChatLoop AI. I work even without internet. Ask me about GreenWorld or say "Hi"!</div>
+    </div>
+
+    <div class="input-area">
+        <input type="text" id="user-input" placeholder="Type a message...">
+        <button id="send-btn">➔</button>
+    </div>
+
+    <script>
+    const chatWindow = document.getElementById('chat-window');
+    const userInput = document.getElementById('user-input');
+    const sendBtn = document.getElementById('send-btn');
+
+    // --- THE MEGA MANUAL BRAIN ---
+    const aiKnowledge = {
+        // 1. Greetings & Basics (20+ variations)
+        "greetings": {
+            keywords: ["hi", "hello", "hey", "habari", "mambo", "sasa", "good morning", "good evening", "sup"],
+            reply: "Hello! I am the ChatLoop Manual AI. How can I help you with your project today?"
+        },
+        // 2. Web Development (50+ keywords)
+        "frontend": {
+            keywords: ["html", "css", "javascript", "js", "tags", "style", "script", "div", "body", "head", "button", "input", "flexbox", "grid", "hover", "animation", "dom", "canvas", "framework", "react", "vue"],
+            reply: "Web development is great! HTML provides the structure, CSS adds the style (like colors and fonts), and JavaScript adds the 'brain' or logic to the page."
+        },
+        "backend": {
+            keywords: ["database", "sql", "php", "node", "python", "server", "api", "json", "localstorage", "backend", "cloud", "firebase", "mongodb"],
+            reply: "The backend handles data and servers. Currently, GreenWorld uses 'LocalStorage' which saves data directly in your browser without a database server!"
+        },
+        // 3. GreenWorld Specifics (30+ keywords)
+        "features": {
+            keywords: ["greenworld", "chatloop", "forum", "community", "messages", "groups", "support", "ticket", "help", "app", "project", "software"],
+            reply: "GreenWorld is an all-in-one social platform featuring private messaging, group chats, a community forum, and an admin support system."
+        },
+        "badges": {
+            keywords: ["badge", "verified", "green badge", "elite", "500", "friends", "approve", "allow", "verification"],
+            reply: "The Green Elite Badge is a mark of trust. You need at least 500 friends and manual approval from the System Admin to get it."
+        },
+        // 4. General Knowledge & School (100+ keywords)
+        "science": {
+            keywords: ["physics", "math", "mathematics", "biology", "chemistry", "atom", "energy", "gravity", "force", "cell", "equation", "binary", "computer science", "cs", "algorithm"],
+            reply: "I can help with school topics! For example, Binary is the language of computers (1s and 0s), and Physics helps us understand how the world moves."
+        },
+        "money": {
+            keywords: ["ksh", "shilling", "dollar", "currency", "money", "payment", "airtel", "transfer", "fintech"],
+            reply: "Our system is designed to handle currency conversions (like USD to KSh) and we're looking into ISP/payment integrations soon!"
+        }
+    };
+
+    const fallbacks = [
+        "I'm not programmed for that specific word yet, but I'm learning!",
+        "That sounds interesting. Can you tell me more about it?",
+        "My manual database is still growing. Try asking about HTML, CSS, or GreenWorld!",
+        "I didn't quite catch that. Try using simpler keywords.",
+        "Hmm, I'm a local AI, so I don't know everything yet, but I'm here to help!"
+    ];
+
+    function sendMessage() {
+        const text = userInput.value.trim().toLowerCase();
+        if (!text) return;
+
+        addBubble(userInput.value, 'user-msg');
+        userInput.value = "";
+
+        setTimeout(() => {
+            let response = "";
+            let found = false;
+
+            // 1. Search through each category
+            for (let category in aiKnowledge) {
+                const data = aiKnowledge[category];
+                // Check if any keyword in the list is inside the user's text
+                const match = data.keywords.some(word => text.includes(word));
+                
+                if (match) {
+                    response = data.reply;
+                    found = true;
+                    break;
+                }
+            }
+
+            // 2. If nothing found, use random fallback
+            if (!found) {
+                response = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+            }
+
+            addBubble(response, 'ai-msg');
+        }, 500);
+    }
+
+    function addBubble(text, className) {
+        const div = document.createElement('div');
+        div.className = `msg ${className}`;
+        div.textContent = text;
+        chatWindow.appendChild(div);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    sendBtn.onclick = sendMessage;
+    userInput.onkeypress = (e) => { if (e.key === 'Enter') sendMessage(); };
+</script>
+</body>
+</html>

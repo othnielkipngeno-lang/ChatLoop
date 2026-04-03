@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Friends - GreenWorld</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="menu-icon" onclick="location.href='menu.html'">☰</div>
+        <img src="ChatLoop.png" alt="Logo" class="logo-img" style="height:30px;">
+        <div class="search-icon" onclick="location.href='search.html'">🔍</div>
+    </div>
+
+    <div class="content">
+        <h2>My Friends</h2>
+        <input type="text" id="friend-search" placeholder="Search friends..." style="width:100%; padding:12px; border-radius:10px; border:1px solid #ddd; margin-bottom:15px; outline:none;">
+        
+        <div id="friends-list-container">
+            </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <div onclick="location.href='messages.html'"><span>💬</span><span>Messages</span></div>
+        <div class="active-nav"><span>👥</span><span>Friends</span></div>
+        <div onclick="location.href='chatloop.html'"><span>🤖</span><span>AI</span></div>
+        <div onclick="location.href='profile.html'"><span>👤</span><span>Profile</span></div>
+    </nav>
+
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const email = localStorage.getItem('loggedInUser');
+            const users = JSON.parse(localStorage.getItem('users')) || [];
+            const currentUser = users.find(u => u.email === email);
+
+            if (!currentUser) { window.location.href = 'login.html'; return; }
+
+            const container = document.getElementById('friends-list-container');
+
+            function renderFriends(filter = "") {
+                container.innerHTML = "";
+                const friendsEmails = currentUser.friends || [];
+                
+                const filteredFriends = friendsEmails.filter(fEmail => {
+                    const fData = users.find(u => u.email === fEmail);
+                    return fData && (fData.name || fEmail).toLowerCase().includes(filter.toLowerCase());
+                });
+
+                if (filteredFriends.length === 0) {
+                    container.innerHTML = `<p style="text-align:center; color:#999; margin-top:20px;">No friends found.</p>`;
+                    return;
+                }
+
+                filteredFriends.forEach(fEmail => {
+                    const friend = users.find(u => u.email === fEmail);
+                    if (!friend) return;
+
+                    // Use the global helper from script.js
+                    const statusHtml = window.formatLastSeen(friend.lastSeen);
+
+                    const div = document.createElement('div');
+                    div.style.cssText = "display:flex; align-items:center; gap:15px; padding:12px; background:white; border-radius:12px; margin-bottom:10px; cursor:pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05);";
+                    
+                    div.innerHTML = `
+                        <img src="${friend.profilePhoto || 'default-photo.jpg'}" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border:2px solid #f0f2f5;">
+                        <div style="flex:1;">
+                            <div style="font-weight:bold; color:#2F4F7F;">${friend.name || fEmail}</div>
+                            <div style="font-size:11px; margin-top:2px;">${statusHtml}</div>
+                        </div>
+                        <span style="color:#ccc; font-size:12px;">❯</span>
+                    `;
+
+                    div.onclick = () => {
+                        localStorage.setItem('currentChatFriend', JSON.stringify({email: friend.email, name: friend.name}));
+                        window.location.href = 'message-space.html';
+                    };
+                    container.appendChild(div);
+                });
+            }
+
+            renderFriends();
+
+            document.getElementById('friend-search').oninput = (e) => {
+                renderFriends(e.target.value);
+            };
+        });
+    </script>
+</body>
+</html>

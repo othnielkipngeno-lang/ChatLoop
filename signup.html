@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - GreenWorld</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body style="background-color: #2F4F7F; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: sans-serif;">
+
+    <div class="auth-wrapper">
+        <div class="auth-card">
+            <img src="ChatLoop.png" alt="Logo" style="max-width: 100px; margin-bottom: 15px;">
+            <h2 style="margin-top: 0; color: #333;">Create Account</h2>
+            
+            <input type="text" id="reg-name" placeholder="Full Name">
+            <input type="text" id="reg-email" placeholder="Email Address">
+            <input type="password" id="reg-pass" placeholder="Create Password">
+            <input type="password" id="reg-confirm-pass" placeholder="Confirm Password">
+            
+            <button id="reg-btn">Sign Up</button>
+            
+            <div class="auth-link">
+                Already have an account? <a href="login.html">Login</a>
+            </div>
+            <p id="error-msg" style="color: #d9534f; font-size: 13px; margin-top: 10px; font-weight: bold; display: none;"></p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('reg-btn').onclick = function() {
+            const name = document.getElementById('reg-name').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const pass = document.getElementById('reg-pass').value.trim();
+            const confirmPass = document.getElementById('reg-confirm-pass').value.trim();
+            const errorMsg = document.getElementById('error-msg');
+
+            errorMsg.style.display = "none";
+
+            if (!name || !email || !pass || !confirmPass) {
+                showError("All fields are required.");
+                return;
+            }
+
+            if (pass !== confirmPass) {
+                showError("Passwords do not match!");
+                return;
+            }
+
+            if (pass.length < 6) {
+                showError("Password must be at least 6 characters.");
+                return;
+            }
+
+            let users = JSON.parse(localStorage.getItem('users')) || [];
+            if (users.find(u => u.email === email)) {
+                showError("Email already registered!");
+                return;
+            }
+
+            const newUser = {
+                name: name,
+                email: email,
+                password: pass,
+                profilePhoto: "", 
+                friends: [],      
+                isVerified: false // Required for the Green Badge logic later
+            };
+
+            users.push(newUser);
+            localStorage.setItem('users', JSON.stringify(users));
+            localStorage.setItem('loggedInUser', email);
+            
+            alert("Welcome to GreenWorld!");
+            window.location.replace('messages.html');
+        };
+
+        function showError(text) {
+            const errorMsg = document.getElementById('error-msg');
+            errorMsg.textContent = text;
+            errorMsg.style.display = "block";
+        }
+    </script>
+</body>
+</html>

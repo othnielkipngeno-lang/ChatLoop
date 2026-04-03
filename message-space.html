@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat - GreenWorld</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .chat-container { display: flex; flex-direction: column; height: 100vh; background: #f9f9f9; }
+        .chat-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+        
+        /* Message Bubbles */
+        .msg { max-width: 75%; padding: 10px 14px; border-radius: 18px; font-size: 14px; line-height: 1.4; position: relative; }
+        .msg.sent { align-self: flex-end; background: #7cb342; color: white; border-bottom-right-radius: 4px; }
+        .msg.received { align-self: flex-start; background: white; color: #333; border-bottom-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        
+        .sender-name { font-size: 10px; font-weight: bold; margin-bottom: 4px; display: block; color: #555; }
+        
+        .chat-input-area { padding: 10px; background: white; display: flex; gap: 10px; align-items: center; border-top: 1px solid #eee; }
+        .chat-input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 25px; outline: none; }
+        .send-btn { background: #7cb342; color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 18px; }
+
+        /* Info Modal Specifics */
+        #info-pic-container img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #7cb342; margin-bottom: 10px; }
+        .info-member-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f5f5f5; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <div class="chat-container">
+        <div class="top-bar">
+            <div onclick="window.history.back()" style="cursor:pointer; font-size: 20px;">⬅️</div>
+            <div style="flex:1; text-align:center;">
+                <div id="chat-title" style="font-weight:bold;">Loading...</div>
+                <div id="chat-subtitle" style="font-size:11px; opacity:0.8;">Please wait</div>
+            </div>
+            <div id="group-info-btn" onclick="openGroupInfo()" style="cursor:pointer; font-size: 18px; display:none;">ℹ️</div>
+        </div>
+
+        <div class="chat-messages" id="chat-box"></div>
+
+        <form class="chat-input-area" id="chat-form">
+            <input type="text" id="msg-input" class="chat-input" placeholder="Type a message..." autocomplete="off">
+            <button type="submit" class="send-btn">➤</button>
+        </form>
+    </div>
+
+    <div id="info-modal" class="modal" style="display:none; z-index: 1000;">
+        <div class="modal-content" style="text-align: center;">
+            <span class="close-btn" onclick="closeGroupInfo()">&times;</span>
+            <div id="info-pic-container"></div>
+            <h3 id="info-name">Group Name</h3>
+            <p id="info-count" style="color: #888; font-size: 12px;"></p>
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
+            <div style="text-align: left;">
+                <label style="font-weight: bold; color: #558b2f; font-size: 14px;">Members</label>
+                <div id="info-members-list" style="margin-top: 10px; max-height: 200px; overflow-y: auto;"></div>
+            </div>
+            <button onclick="leaveGroup()" style="margin-top: 20px; width: 100%; padding: 12px; background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; border-radius: 8px; font-weight: bold; cursor: pointer;">Leave Group</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        const chatBox = document.getElementById('chat-box');
+        const chatTitle = document.getElementById('chat-title');
+        const chatSubtitle = document.getElementById('chat-subtitle');
+        const msgInput = document.getElementById('msg-input');
+        const loggedInEmail = localStorage.getItem('loggedInUser');
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const isGroup = urlParams.get('type') === 'group';
+        let storageKey = "";
+
+        // DATA RETRIEVAL
+        if (isGroup) {
+            const groupID = localStorage.getItem('currentChatGroupID');
+            const allGroups = JSON.parse(localStorage.getItem('groups')) || [];
+            const groupData = allGroups.find(g => g.id === groupID);
+
+            if (groupData) {
+                chatTitle.textContent = groupData.name;
+                chatSubtitle.textContent = `${groupData.members.length} members`;
+                storageKey = `msgs_${groupData.id}`;
+                document.getElementById('group-info-btn').style.display = 'block';
+            }
+        } else {
+            const friendEmail = localStorage.getItem('currentChatFriendEmail');
+            const users = JSON.parse(localStorage.getItem('users')) || [];
+            const friend = users.find(u => u.email === friendEmail);
+            
+            chatTitle.textContent = friend ? (friend.name || friend.email) : "Chat";
+            chatSubtitle.textContent = "Private Message";
+            const sortedEmails = [loggedInEmail, friendEmail].sort();
+            storageKey = `msgs_${sortedEmails[0]}_${sortedEmails[1]}`;
+        }
+
+        function renderMessages() {
+            const messages = JSON.parse(localStorage.getItem(storageKey)) || [];
+            chatBox.innerHTML = "";
+            messages.forEach(m => {
+                const isMine = m.sender === loggedInEmail;
+                const div = document.createElement('div');
+                div.className = `msg ${isMine ? 'sent' : 'received'}`;
+                let senderLabel = (isGroup && !isMine) ? `<span class="sender-name">${m.senderName || m.sender}</span>` : "";
+                div.innerHTML = `${senderLabel}${m.text}`;
+                chatBox.appendChild(div);
+            });
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        document.getElementById('chat-form').onsubmit = (e) => {
+            e.preventDefault();
+            const text = msgInput.value.trim();
+            if (!text) return;
+            const messages = JSON.parse(localStorage.getItem(storageKey)) || [];
+            const users = JSON.parse(localStorage.getItem('users')) || [];
+            const me = users.find(u => u.email === loggedInEmail);
+
+            messages.push({ sender: loggedInEmail, senderName: me.name || "User", text: text, time: Date.now() });
+            localStorage.setItem(storageKey, JSON.stringify(messages));
+            msgInput.value = "";
+            renderMessages();
+        };
+
+        // GROUP INFO FUNCTIONS
+        function openGroupInfo() {
+            const groupID = localStorage.getItem('currentChatGroupID');
+            const group = (JSON.parse(localStorage.getItem('groups')) || []).find(g => g.id === groupID);
+            const allUsers = JSON.parse(localStorage.getItem('users')) || [];
+            if (!group) return;
+
+            document.getElementById('info-name').textContent = group.name;
+            document.getElementById('info-count').textContent = `${group.members.length} Members`;
+            
+            const picContainer = document.getElementById('info-pic-container');
+            picContainer.innerHTML = group.groupPhoto 
+                ? `<img src="${group.groupPhoto}">` 
+                : `<div style="width:80px; height:80px; border-radius:50%; background:#7cb342; color:white; display:flex; align-items:center; justify-content:center; font-size:30px; margin:0 auto 10px;">${group.name.charAt(0).toUpperCase()}</div>`;
+
+            const list = document.getElementById('info-members-list');
+            list.innerHTML = "";
+            group.members.forEach(email => {
+                const user = allUsers.find(u => u.email === email);
+                const name = user ? (user.name || user.email) : email;
+                list.innerHTML += `<div class="info-member-item">👤 <span>${name} ${email === loggedInEmail ? '<b>(You)</b>' : ''}</span></div>`;
+            });
+
+            document.getElementById('info-modal').style.display = 'flex';
+        }
+
+        function closeGroupInfo() { document.getElementById('info-modal').style.display = 'none'; }
+
+        function leaveGroup() {
+            if (!confirm("Leave this group?")) return;
+            const groupID = localStorage.getItem('currentChatGroupID');
+            let allGroups = JSON.parse(localStorage.getItem('groups')) || [];
+            allGroups = allGroups.map(g => {
+                if (g.id === groupID) g.members = g.members.filter(m => m !== loggedInEmail);
+                return g;
+            }).filter(g => g.members.length > 0);
+            
+            localStorage.setItem('groups', JSON.stringify(allGroups));
+            window.location.href = 'messages.html';
+        }
+
+        renderMessages();
+        setInterval(renderMessages, 2000);
+    </script>
+</body>
+</html>

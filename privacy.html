@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Settings - GreenWorld</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .settings-group { margin-top: 20px; }
+        .setting-card {
+            background: white; padding: 18px; border-radius: 15px;
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .setting-info { flex: 1; padding-right: 15px; }
+        .setting-title { font-weight: bold; color: #2F4F7F; font-size: 15px; }
+        .setting-desc { font-size: 12px; color: #888; margin-top: 4px; line-height: 1.4; }
+
+        /* Modern Toggle Switch */
+        .switch {
+            position: relative; display: inline-block; width: 46px; height: 24px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc; transition: .4s; border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 18px; width: 18px;
+            left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: #7cb342; }
+        input:checked + .slider:before { transform: translateX(22px); }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div onclick="window.goBack()" style="cursor:pointer; padding: 10px; font-size: 20px;">⬅️</div>
+        <div style="font-weight:bold; flex:1; text-align:center; margin-right:40px;">Privacy</div>
+    </div>
+
+    <div class="content">
+        <div class="settings-group">
+            <div class="setting-card">
+                <div class="setting-info">
+                    <div class="setting-title">Show Online Status</div>
+                    <div class="setting-desc">Allow friends to see when you are active or your last seen time.</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="status-toggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="setting-card">
+                <div class="setting-info">
+                    <div class="setting-title">Private Profile</div>
+                    <div class="setting-desc">Only confirmed friends can see your full profile details and posts.</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="profile-toggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="setting-card">
+                <div class="setting-info">
+                    <div class="setting-title">Read Receipts</div>
+                    <div class="setting-desc">If turned off, you won't see when others read your messages.</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="read-toggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        const email = localStorage.getItem('loggedInUser');
+        let users = JSON.parse(localStorage.getItem('users')) || [];
+        let userIndex = users.findIndex(u => u.email === email);
+        let currentUser = users[userIndex];
+
+        // Initialize Settings if they don't exist
+        if (!currentUser.privacy) {
+            currentUser.privacy = {
+                showStatus: true,
+                privateProfile: false,
+                readReceipts: true
+            };
+        }
+
+        // Set Toggles to current values
+        const statusToggle = document.getElementById('status-toggle');
+        const profileToggle = document.getElementById('profile-toggle');
+        const readToggle = document.getElementById('read-toggle');
+
+        statusToggle.checked = currentUser.privacy.showStatus;
+        profileToggle.checked = currentUser.privacy.privateProfile;
+        readToggle.checked = currentUser.privacy.readReceipts;
+
+        // Save on change
+        function updatePrivacy() {
+            currentUser.privacy = {
+                showStatus: statusToggle.checked,
+                privateProfile: profileToggle.checked,
+                readReceipts: readToggle.checked
+            };
+            users[userIndex] = currentUser;
+            localStorage.setItem('users', JSON.stringify(users));
+        }
+
+        statusToggle.onchange = updatePrivacy;
+        profileToggle.onchange = updatePrivacy;
+        readToggle.onchange = updatePrivacy;
+    </script>
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - GreenWorld</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="menu-icon" onclick="window.goBack()" style="cursor:pointer;">⬅️</div>
+        <img src="ChatLoop.png" alt="Logo" class="logo-img">
+        <div class="search-icon" onclick="location.href='search.html'">🔍</div>
+    </div>
+
+    <div class="content">
+        <h2>My Profile</h2>
+        
+        <div class="profile-main">
+            <div class="image-wrapper">
+                <img id="display-photo" src="default-photo.jpg" alt="Profile" style="width:120px; height:120px; border-radius:50%; object-fit:cover;">
+                <div class="pencil-icon" id="open-edit" style="cursor:pointer;">✏️</div>
+            </div>
+            
+            <div class="display-info">
+                <h3 id="display-name">Loading...</h3>
+                <p id="display-email"></p>
+                <p id="display-gender" class="badge"></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="close-modal">&times;</span>
+            <h3>Edit Details</h3>
+            
+            <div class="edit-group">
+                <label>Profile Picture</label>
+                <input type="file" id="edit-photo-input" accept="image/*">
+            </div>
+
+            <div class="edit-group">
+                <label>Full Name</label>
+                <input type="text" id="edit-name-input">
+            </div>
+
+            <div class="edit-group">
+                <label>Gender</label>
+                <select id="edit-gender-input">
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+
+            <button id="save-all-btn">Save Changes</button>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <div onclick="location.href='messages.html'"><span>💬</span><span>Messages</span></div>
+        <div onclick="location.href='friends.html'"><span>👥</span><span>Friends</span></div>
+        <div onclick="location.href='chatloop.html'"><span>🤖</span><span>AI</span></div>
+        <div class="active-nav" onclick="location.href='profile.html'"><span>👤</span><span>Profile</span></div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const email = localStorage.getItem('loggedInUser');
+            let users = JSON.parse(localStorage.getItem('users')) || [];
+            let userIndex = users.findIndex(u => u.email === email);
+            let user = users[userIndex];
+
+            if (!user) { window.location.href = 'login.html'; return; }
+
+            const modal = document.getElementById('edit-modal');
+            const openBtn = document.getElementById('open-edit');
+            const closeBtn = document.getElementById('close-modal');
+            const saveBtn = document.getElementById('save-all-btn');
+
+            function refreshUI() {
+                document.getElementById('display-photo').src = user.profilePhoto || 'default-photo.jpg';
+                document.getElementById('display-name').textContent = user.name || "No Name";
+                document.getElementById('display-email').textContent = user.email;
+                document.getElementById('display-gender').textContent = user.gender || "Not Specified";
+            }
+            refreshUI();
+
+            openBtn.onclick = () => {
+                document.getElementById('edit-name-input').value = user.name || "";
+                document.getElementById('edit-gender-input').value = user.gender || "Male";
+                modal.style.display = 'flex';
+            };
+
+            closeBtn.onclick = () => modal.style.display = 'none';
+            window.onclick = (e) => { if(e.target == modal) modal.style.display = 'none'; };
+
+            saveBtn.onclick = () => {
+                const newName = document.getElementById('edit-name-input').value;
+                const newGender = document.getElementById('edit-gender-input').value;
+                const photoFile = document.getElementById('edit-photo-input').files[0];
+
+                if (photoFile) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            const MAX_WIDTH = 200;
+                            const scale = MAX_WIDTH / img.width;
+                            canvas.width = MAX_WIDTH;
+                            canvas.height = img.height * scale;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                            
+                            user.profilePhoto = canvas.toDataURL('image/jpeg', 0.6);
+                            user.name = newName;
+                            user.gender = newGender;
+                            saveData();
+                        };
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(photoFile);
+                } else {
+                    user.name = newName;
+                    user.gender = newGender;
+                    saveData();
+                }
+            };
+
+            function saveData() {
+                try {
+                    users[userIndex] = user;
+                    localStorage.setItem('users', JSON.stringify(users));
+                    refreshUI();
+                    modal.style.display = 'none';
+                    // Trigger global toast
+                    window.showNotification("Success", "Profile details updated!", "👤");
+                } catch (e) {
+                    alert("Storage is full. Please use a smaller photo.");
+                }
+            }
+        });
+    </script>
+</body>
+</html>

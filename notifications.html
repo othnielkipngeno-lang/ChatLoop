@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications - GreenWorld</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .settings-group { margin-top: 20px; }
+        .setting-card {
+            background: white; padding: 18px; border-radius: 15px;
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .setting-info { flex: 1; padding-right: 15px; }
+        .setting-title { font-weight: bold; color: #2F4F7F; font-size: 15px; }
+        .setting-desc { font-size: 12px; color: #888; margin-top: 4px; line-height: 1.4; }
+
+        /* Toggle Switch */
+        .switch { position: relative; display: inline-block; width: 46px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc; transition: .4s; border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 18px; width: 18px;
+            left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: #7cb342; }
+        input:checked + .slider:before { transform: translateX(22px); }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div onclick="window.goBack()" style="cursor:pointer; padding: 10px; font-size: 20px;">⬅️</div>
+        <div style="font-weight:bold; flex:1; text-align:center; margin-right:40px;">Notifications</div>
+    </div>
+
+    <div class="content">
+        <div class="settings-group">
+            <div class="setting-card">
+                <div class="setting-info">
+                    <div class="setting-title">New Messages</div>
+                    <div class="setting-desc">Receive alerts when someone sends you a direct message.</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="msg-notify">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="setting-card">
+                <div class="setting-info">
+                    <div class="setting-title">Friend Requests</div>
+                    <div class="setting-desc">Get notified when someone wants to connect with you.</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="friend-notify">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="setting-card">
+                <div class="setting-info">
+                    <div class="setting-title">Community Alerts</div>
+                    <div class="setting-desc">Stay updated on trending posts in your joined communities.</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="comm-notify">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        const email = localStorage.getItem('loggedInUser');
+        let users = JSON.parse(localStorage.getItem('users')) || [];
+        let userIndex = users.findIndex(u => u.email === email);
+        let currentUser = users[userIndex];
+
+        if (!currentUser) window.location.href = 'login.html';
+
+        // Initialize notification settings if they don't exist
+        if (!currentUser.notifications) {
+            currentUser.notifications = {
+                messages: true,
+                friends: true,
+                communities: false
+            };
+        }
+
+        const msgInp = document.getElementById('msg-notify');
+        const friendInp = document.getElementById('friend-notify');
+        const commInp = document.getElementById('comm-notify');
+
+        // Load saved states
+        msgInp.checked = currentUser.notifications.messages;
+        friendInp.checked = currentUser.notifications.friends;
+        commInp.checked = currentUser.notifications.communities;
+
+        // Save on change
+        function saveNotify() {
+            currentUser.notifications = {
+                messages: msgInp.checked,
+                friends: friendInp.checked,
+                communities: commInp.checked
+            };
+            users[userIndex] = currentUser;
+            localStorage.setItem('users', JSON.stringify(users));
+        }
+
+        msgInp.onchange = saveNotify;
+        friendInp.onchange = saveNotify;
+        commInp.onchange = saveNotify;
+    </script>
+</body>
+</html>
